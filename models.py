@@ -32,6 +32,9 @@ class BookModel(db.Model):
         self.price = price
         self.author = author
 
+    def get_json(self):
+        return {"name": self.name, "price": self.price, "author": self.author}
+
 
 def create_user(user_name, password, email):
     user = UserModel(user_name, password, email)

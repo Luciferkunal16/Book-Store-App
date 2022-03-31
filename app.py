@@ -8,6 +8,6 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:kunal123@localhos
 db = SQLAlchemy(app)
 
 if __name__ == '__main__':
-    from views import *
-
+    from user.views import *
+    from book.views import *
     app.run(debug=True)
