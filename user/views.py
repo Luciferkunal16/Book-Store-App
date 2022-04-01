@@ -1,8 +1,8 @@
-
 import logging
 from models import UserModel, create_user, create_book, BookModel, db
-from flask import jsonify, request
+from flask import request
 from app import app
+from utils import email_service
 
 logging.basicConfig(filename="user.log",
                     format='%(asctime)s %(message)s',
@@ -23,12 +23,13 @@ def register():
         password = data.get('password')
         email = data.get('email')
         if UserModel.query.filter_by(username=username).first():
-            return jsonify({"message": "Username already Exists"})
+            return {"message": "Username already Exists"}, 200
         create_user(user_name=username, password=password, email=email)
-        return jsonify({"message": "User Registration Successfull"})
+        email_service.send_otp(email)
+        return {"message": "User Registration Successfull"}, 200
     except Exception as err:
         logger.error(err)
-        return jsonify({"mesage": "Registration Unscuccessfull!!! Exception Occured", "error": err})
+        return {"mesage": "Registration Unscuccessfull!!! Exception Occured", "error": err}, 400
 
 
 @app.route("/login", methods=['POST'])
@@ -43,10 +44,9 @@ def login():
         password = data.get('password')
         user = UserModel.query.filter_by(username=username, password=password).first()
         if user:
-            return jsonify({"message": "User Login Successful", "data": {"user_name": username}})
+            return {"message": "User Login Successful", "data": {"user_name": username}}, 200
 
-        return jsonify({"message": "Login Unsuccessfull !!! "})
+        return {"message": "Login Unsuccessfull !!! "}, 200
     except Exception as err:
         logger.exception(err)
-        return jsonify({"message": "Login Unsuccessfull!!! Exception Occurred ","error":err})
-
+        return {"message": "Login Unsuccessfull!!! Exception Occurred ", "error": err}, 400
