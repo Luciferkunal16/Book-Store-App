@@ -1,7 +1,9 @@
 import logging
 from models import create_book, BookModel, db
-from flask import jsonify, request
-from app import app
+from flask import request, Blueprint
+
+book_bp = Blueprint('book_bp', __name__)
+
 
 logging.basicConfig(filename="book.log",
                     format='%(asctime)s %(message)s',
@@ -10,7 +12,7 @@ logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
 
-@app.route('/addbook', methods=['POST'])
+@book_bp.route('/addbook', methods=['POST'])
 def add_book():
     """
     For adding book to database
@@ -31,7 +33,7 @@ def add_book():
         return {"message": "Book Addition unsuccessfull", "error": str(err)}, 400
 
 
-@app.route("/getbook", methods=['GET'])
+@book_bp.route("/getbook", methods=['GET'])
 def get_book():
     """
     For getting list of all books
@@ -45,7 +47,7 @@ def get_book():
         return {"message": "Exception occurred", "error": str(err)}, 400
 
 
-@app.route("/updatebook", methods=['PUT'])
+@book_bp.route("/updatebook", methods=['PUT'])
 def update_book():
     """
     For Updating the existing book inside the database
@@ -66,7 +68,7 @@ def update_book():
         return {"message": "Book Updation UnSuccessfull!!! Exception Occurred", "error": str(err)}, 400
 
 
-@app.route("/deletebook", methods=['DELETE'])
+@book_bp.route("/deletebook", methods=['DELETE'])
 def book_delete():
     """
     For deleting the book from Database
