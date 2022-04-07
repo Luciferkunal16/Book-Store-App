@@ -31,7 +31,7 @@ def register():
         return {"message": "User Registration Successfull"}, 200
     except Exception as err:
         logger.error(err)
-        return {"mesage": "Registration Unscuccessfull!!! Exception Occured", "error": err}, 400
+        return {"mesage": "Registration Unscuccessfull!!! Exception Occured", "error": str(err)}, 400
 
 
 @user_bp.route("/login", methods=['POST'])
@@ -42,6 +42,7 @@ def login():
     """
     try:
         data = request.get_json()
+        print(data)
         username = data.get('username')
         password = data.get('password')
         user = UserModel.query.filter_by(username=username, password=password).first()
@@ -52,4 +53,4 @@ def login():
 
     except Exception as err:
         logger.exception(err)
-        return {"message": "Login Unsuccessfull!!! Exception Occurred ", "error": err}, 400
+        return {"message": "Login Unsuccessfull!!! Exception Occurred ", "error": str(err)}, 400
