@@ -2,11 +2,10 @@ from app import db
 
 
 class UserModel(db.Model):
-    __tablename__ = 'user'
+    __tablename__ = 'users'
 
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80))
-
     password = db.Column(db.String(20))
     email = db.Column(db.String(30))
 
@@ -26,6 +25,7 @@ class BookModel(db.Model):
     name = db.Column(db.String(80))
     price = db.Column(db.Integer())
     author = db.Column(db.String(80))
+
 
     def __init__(self, name, price, author):
         self.name = name

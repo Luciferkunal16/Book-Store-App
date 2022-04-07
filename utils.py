@@ -1,4 +1,6 @@
 import smtplib, os, random
+import psycopg2
+from psycopg2 import Error
 
 from dotenv import load_dotenv
 
@@ -21,3 +23,4 @@ class EmailService:
         except  Exception as e:
             print(e)
             return "Exception occurred : {}".format(e)
+

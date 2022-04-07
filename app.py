@@ -10,11 +10,13 @@ db = SQLAlchemy(app)
 def register_blueprint():
     app.register_blueprint(user_bp)
     app.register_blueprint(book_bp)
+    app.register_blueprint(order_bp)
 
 
 if __name__ == '__main__':
     from book.views import *
     from user.views import *
+    from order.views import *
 
     register_blueprint()
     app.run(debug=True)
