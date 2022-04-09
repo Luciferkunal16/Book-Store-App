@@ -4,11 +4,10 @@ import logging
 from flask import request
 from flask import Blueprint
 
+from app import db
+from models import Orders, OrderItem
+
 order_bp = Blueprint('order_bp', __name__)
-connection = psycopg2.connect(user="postgres",
-                              password="kunal123",
-                              database="bookstore")
-cursor = connection.cursor()
 
 logging.basicConfig(filename="order.log",
                     format='%(asctime)s %(message)s',
@@ -24,25 +23,19 @@ def add_order():
         total_quantity = data.get("quantity")
         book_list = data.get("book_list")
         if total_quantity == sum(book['quantity'] for book in book_list):
-            add_to_order_command = "insert into orders (total_price,quantity,user_id,status) values ({},{},{}," \
-                                   "{}) returning order_id".format(
-                data.get("total_price"), total_quantity, data.get("user_id"), data.get("status"))
-            cursor.execute(add_to_order_command)
-            id_of_new_order = cursor.fetchone()[0]
-
+            order = Orders(total_price=data.get("total_price"), quantity=data.get("quantity"),
+                           user_id=data.get("user_id"), status=data.get("status"))
+            db.session.add(order)
+            db.session.commit()
             for book in book_list:
-                add_to_order_item_command = "insert into order_item (order_id,user_id,book_id,status,quantity) values " \
-                                            "({},{},{},{},{})".format(
-                    id_of_new_order, data.get("user_id"), book.get("book_id"), data.get("status"), book.get("quantity"))
-                cursor.execute(add_to_order_item_command)
-            connection.commit()
+                item = OrderItem(order_id=order.order_id, user_id=data.get("user_id"), book_id=book.get("book_id"),
+                                 status=data.get("status"), quantity=book.get("quantity"))
+                db.session.add(item)
+                db.session.commit()
             return {"message": "Data inserted Successfully"}, 200
         return {"message": "Data insertion Unsuccessfull because quantity of books  and total quantity not matching"}
     except (Exception, psycopg2.Error) as error:
         logger.exception(error)
-        cursor.execute("ROLLBACK")
-        connection.commit()
-        print("Failed to insert record into mobile table", error)
         return {"message": "Data insertion Failed", "error": str(error)}, 400
 
 
@@ -50,24 +43,18 @@ def add_order():
 def get_order():
     try:
         data = request.get_json()
-        get_order_command = "select order_item.book_id,books.price,books.author ,order_item.quantity from orders " \
-                            "inner join order_item on orders.order_id=order_item.order_id  join books on " \
-                            "order_item.book_id=books.id where orders.order_id={}".format(
-            data.get("order_id"))
-        cursor.execute(get_order_command)
-        order_data = cursor.fetchall()
-        if order_data:
-            list_of_order = list()
-            for line in order_data:
-                list_of_order.append({"book_id": line[0], "price": line[1], "author": line[2],
-                                      "quantity": line[3]})
+        order_list = OrderItem.query.filter_by(order_id=data.get("order_id")).all()
+
+        list_of_order = list()
+        if order_list:
+            for book in order_list:
+                list_of_order.append({"book_id": book.book_id, "price": book.book.price, "author": book.book.author,
+                                      "quantity": book.quantity})
 
             return {"order_id": data.get("order_id"), "order_list": list_of_order}
         return {"message": "Wrong order_id is given"}
-
-    except (Exception, psycopg2.Error) as error:
+    except Exception as error:
         logger.exception(error)
-        print(error)
         return {"message": "Fetching data Failed", "error": str(error)}, 400
 
 
@@ -76,52 +63,42 @@ def delete_order():
     try:
         data = request.get_json()
         order_id = data.get("order_id")
-        delete_order_command = "DELETE FROM orders where order_id = {} returning order_id".format(order_id)
-        cursor.execute(delete_order_command)
-        deleted_item_id = cursor.fetchone()
-        if deleted_item_id:
-            connection.commit()
+        order = Orders.query.get(order_id)
+        if order:
+            db.session.delete(order)
+            db.session.commit()
             return {"message": "Deletion Successfully done"}
         return {"message": "Order doesn't Exists!!! you entered wrong order_id"}
 
-    except (Exception, psycopg2.Error) as error:
+    except Exception as error:
         logger.exception(error)
-        print(error)
         return {"message": "Deletion Failed Exception occurred ", "error": str(error)}, 400
 
 
 @order_bp.route("/getorderbyuid", methods=['POST'])
 def get_order_by_user_id():
     try:
-        cursor = connection.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         data = request.get_json()
-        user_id = data.get("user_id")
-        get_order_command = "select orders.order_id,orders.quantity as total_quantity,orders.total_price," \
-                            "order_item.book_id,books.price,books.author ,order_item.quantity from orders inner join " \
-                            "order_item on orders.order_id=order_item.order_id  join books on " \
-                            "order_item.book_id=books.id where orders.user_id={}".format(
-            user_id)
-        cursor.execute(get_order_command)
-        dict_of_data = cursor.fetchall()
-        list_of_orders = list()
+        order_list = OrderItem.query.filter_by(user_id=data.get("user_id"))
         temp = 0
-        for line in dict_of_data:
-            if temp != line["order_id"]:
+        list_of_orders = list()
+        for order in order_list:
+            if temp != order.order_id:
                 list_of_book = list()
-                order = {"order_id": line["order_id"], "total quantity": line["total_quantity"],
-                         "total_price": line["total_price"], "list_of_ordered_items": []}
-                book = {"book_id": line["book_id"], "author": line["author"], "quantity": line["quantity"],
-                        "price": line["price"]}
-                list_of_book.append(book)
-                order.update({"list_of_ordered_items": list_of_book})
-                list_of_orders.append(order)
-                temp = line["order_id"]
+                order_dict = {"order_id": order.order_id, "total quantity": order.orders.quantity,
+                              "total_price": order.orders.total_price,
+                              "list_of_ordered_items": []}
+                books = {"book_id": order.book.id, "author": order.book.author, "quantity": order.quantity,
+                         "price": order.book.price}
+                list_of_book.append(books)
+                order_dict.update({"list_of_ordered_items": list_of_book})
+                list_of_orders.append(order_dict)
+                temp = order.order_id
             else:
-                book = {"book_id": line["book_id"], "author": line["author"], "quantity": line["quantity"],
-                        "price": line["price"]}
-                list_of_book.append(book)
-        return {"user_id": user_id, "order_list": list_of_orders}
+                books = {"book_id": order.book.id, "author": order.book.author, "quantity": order.quantity,
+                         "price": order.book.price}
+                list_of_book.append(books)
+        return {"user_id": 1, "Order_list": list_of_orders}
     except (Exception, psycopg2.Error) as error:
         logger.exception(error)
-        print(error)
         return {"message": "Fetching data Failed", "error": str(error)}, 400
