@@ -39,6 +39,7 @@ class BookModel(db.Model):
     def get_json(self):
         return {"name": self.name, "price": self.price, "author": self.author}
 
+
 def create_user(user_name, password, email):
     user = UserModel(user_name, password, email)
     db.session.add(user)
@@ -66,7 +67,7 @@ class Orders(db.Model):
 
 
 class OrderItem(db.Model):
-    __table__name = 'order_item'
+    __tablename__ = 'order_item'
     order_item_id = db.Column(Integer, primary_key=True)
     order_id = db.Column(Integer, ForeignKey('orders.order_id'))
     user_id = db.Column(Integer, ForeignKey('users.id'))
@@ -75,3 +76,25 @@ class OrderItem(db.Model):
     quantity = db.Column(Integer)
     book = relationship("BookModel")
     orders = relationship("Orders")
+
+
+class Cart(db.Model):
+    __tablename__ = 'cart'
+    cart_id = db.Column(Integer, primary_key=True)
+    total_quantity = db.Column(Integer)
+    total_price = db.Column(Integer)
+    user_id = db.Column(Integer, ForeignKey('users.id'))
+    status = db.Column(Integer)
+    user = relationship("UserModel")
+
+
+class CartItem(db.Model):
+    __tablename__ = 'cart_item'
+    cart_item_id = db.Column(Integer, primary_key=True)
+    book_id = db.Column(Integer, ForeignKey('books.id'))
+    user_id = db.Column(Integer, ForeignKey('users.id'))
+    cart_id = db.Column(Integer, ForeignKey('cart.cart_id'))
+    book=relationship("BookModel")
+    user = relationship("UserModel")
+    cart=relationship("Cart")
+
