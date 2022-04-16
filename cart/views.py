@@ -16,7 +16,7 @@ logger.setLevel(logging.DEBUG)
 def add_cart():
     try:
         data = request.get_json()
-        list_of_books = data.get("list_of_books")
+        book_list = data.get("list_of_books")
         cart = Cart.query.filter_by(user_id=data.get("user_id"), status=0).first()
         if cart:
             cart.total_quantity = cart.total_quantity + data.get('total_quantity')
@@ -27,12 +27,14 @@ def add_cart():
                         user_id=data.get("user_id"), status=0)
             db.session.add(cart)
             db.session.commit()
-        for book in list_of_books:
-            cart_item = CartItem(cart_id=cart.cart_id, user_id=cart.user_id, book_id=book.get("book_id"))
+        for book in book_list:
+            cart_item = CartItem(cart_id=cart.cart_id, user_id=cart.user_id, book_id=book.get("book_id"),
+                                 quantity=book.get("quantity"))
             db.session.add(cart_item)
             db.session.commit()
         return {"message": "Cart added successfully"}, 200
     except Exception as error:
+        db.session.rollback()
         logger.exception(error)
         return {"message": "Data insertion Failed", "error": str(error)}, 400
 
@@ -40,7 +42,6 @@ def add_cart():
 @cart_bp.route('/viewcart', methods=['POST'])
 def get_cart():
     try:
-        print("-------------------------------------")
         data = request.get_json()
         cart_items = db.session.query(CartItem, Cart, BookModel).filter(CartItem.cart_id == Cart.cart_id,
                                                                         CartItem.user_id == data.get("user_id"),
@@ -53,7 +54,7 @@ def get_cart():
             list_of_book = []
             for book in cart_items:
                 book_dict = {"book_id": book.BookModel.id, "author": book.BookModel.author,
-                             "price": book.BookModel.price}
+                             "price": book.BookModel.price, "quantity": book.CartItem.quantity}
                 list_of_book.append(book_dict)
             detail_of_Cart.update({"book_list": list_of_book})
             return {"user_id": data.get("user_id"), "Cart Items": detail_of_Cart}
@@ -79,7 +80,7 @@ def add_cart_to_order():
             for cart_item in cart:
                 order_item = OrderItem(order_id=order.order_id, user_id=cart_item.CartItem.user_id,
                                        book_id=cart_item.CartItem.book_id, status=cart_item.Cart.status,
-                                       quantity=cart_item.Cart.total_quantity)
+                                       quantity=cart_item.CartItem.quantity)
                 db.session.add(order_item)
                 db.session.commit()
 
