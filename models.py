@@ -96,5 +96,5 @@ class CartItem(db.Model):
     cart_id = db.Column(Integer, ForeignKey('cart.cart_id'))
     book=relationship("BookModel")
     user = relationship("UserModel")
-    cart=relationship("Cart")
+    carting=relationship("Cart")
 
