@@ -66,7 +66,6 @@ def get_cart():
 @cart_bp.route('/addtoorder', methods=['POST'])
 def add_cart_to_order():
     try:
-        print("------------------------------------")
         data = request.get_json()
         cart = db.session.query(CartItem, Cart).filter(CartItem.cart_id == Cart.cart_id,
                                                        CartItem.user_id == data.get("user_id"),
