@@ -2,8 +2,8 @@ import logging
 from models import create_book, BookModel, db
 from flask import request, Blueprint
 
-book_bp = Blueprint('book_bp', __name__)
 
+book_bp = Blueprint('book_bp', __name__)
 
 logging.basicConfig(filename="book.log",
                     format='%(asctime)s %(message)s',
@@ -86,3 +86,24 @@ def book_delete():
     except Exception as err:
         logger.exception(err)
         return {"message": "Book Deletion Unsuccessfull!!! Exception Occurred", "error": str(err)}, 400
+
+
+@book_bp.route('/addbookcsv', methods=['POST'])
+def add_book_by_csv():
+    """
+    for adding book to database
+    throuugh csv
+    :return: status
+    """
+
+    try:
+        data = request.get_json()
+        if BookModel.query.filter_by(name=data.get("title")).first():
+            return {"message": "Book already Exists"}
+        book = BookModel(name=data.get("title"), price=int(data.get("price")), author=data.get("author"))
+        db.session.add(book)
+        db.session.commit()
+
+        return {"message": "Book added successfully "}
+    except Exception as e:
+        return {"message": "Exception occurred", "error": str(e)}
