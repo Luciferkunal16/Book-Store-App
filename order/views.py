@@ -45,14 +45,16 @@ def get_order():
         data = request.get_json()
         order_list = OrderItem.query.filter_by(order_id=data.get("order_id")).all()
 
-        list_of_order = list()
-        if order_list:
-            for book in order_list:
-                list_of_order.append({"book_id": book.book_id, "price": book.book.price, "author": book.book.author,
-                                      "quantity": book.quantity})
 
-            return {"order_id": data.get("order_id"), "order_list": list_of_order}
-        return {"message": "Wrong order_id is given"}
+        if not order_list:
+
+            return {"message": "Wrong order_id is given"}
+        list_of_order = list()
+        for book in order_list:
+            list_of_order.append({"book_id": book.book_id, "price": book.book.price, "author": book.book.author,
+                                  "quantity": book.quantity})
+
+        return {"order_id": data.get("order_id"), "order_list": list_of_order}
     except Exception as error:
         logger.exception(error)
         return {"message": "Fetching data Failed", "error": str(error)}, 400
@@ -64,11 +66,11 @@ def delete_order():
         data = request.get_json()
         order_id = data.get("order_id")
         order = Orders.query.get(order_id)
-        if order:
-            db.session.delete(order)
-            db.session.commit()
-            return {"message": "Deletion Successfully done"}
-        return {"message": "Order doesn't Exists!!! you entered wrong order_id"}
+        if not order:
+            return {"message": "Order doesn't Exists!!! you entered wrong order_id"}
+        db.session.delete(order)
+        db.session.commit()
+        return {"message": "Deletion Successfully done"}
 
     except Exception as error:
         logger.exception(error)
