@@ -1,9 +1,14 @@
 import logging
+from io import StringIO
+
+import pandas as pd
+import io
+
 from models import create_book, BookModel, db
-from flask import request, Blueprint
+from flask import request, Blueprint, jsonify
+import csv
 
 book_bp = Blueprint('book_bp', __name__)
-
 
 logging.basicConfig(filename="book.log",
                     format='%(asctime)s %(message)s',
@@ -57,12 +62,12 @@ def update_book():
         data = request.get_json()
         name = data.get('name')
         book = BookModel.query.filter_by(name=name).first()
-        if book:
-            book.price = data.get("price")
-            book.author = data.get("author")
-            db.session.commit()
-            return {"message": "Book Updated Successfully"}, 201
-        return {"message": "Book Updation UnSuccessfull!!! No book found with the same name"}
+        if not book:
+            return {"message": "Book Updation UnSuccessfull!!! No book found with the same name"}
+        book.price = data.get("price")
+        book.author = data.get("author")
+        db.session.commit()
+        return {"message": "Book Updated Successfully"}, 201
     except Exception as err:
         logger.exception(err)
         return {"message": "Book Updation UnSuccessfull!!! Exception Occurred", "error": str(err)}, 400
@@ -78,11 +83,36 @@ def book_delete():
 
         data = request.get_json()
         book = BookModel.query.filter_by(name=data.get('name')).first()
-        if book:
-            db.session.delete(book)
-            db.session.commit()
-            return {"message": "Book Deleted Successfully"}, 200
-        return {"message": "Book Deletion Unsuccessfull!!! No book found with the same name"}
+        if not book:
+            return {"message": "Book Deletion Unsuccessfull!!! No book found with the same name"}
+        db.session.delete(book)
+        db.session.commit()
+        return {"message": "Book Deleted Successfully"}, 200
     except Exception as err:
         logger.exception(err)
         return {"message": "Book Deletion Unsuccessfull!!! Exception Occurred", "error": str(err)}, 400
+
+
+@book_bp.route('/addbookcsv', methods=['POST'])
+def add_book_by_csv():
+    """
+    for adding book to database
+    through csv
+    :return: status
+    """
+
+    try:
+        with io.TextIOWrapper(request.files["file"], encoding="utf-8", newline='\n') as text_file:
+            read = csv.reader(text_file)
+            for row in read:
+                if BookModel.query.filter_by(name=row[0]).first():
+                    print(row[0])
+                    logger.exception("Book already exist in database,Book name-{}".format(row[0]))
+                else:
+                    book = BookModel(name=row[0], author=row[1], price=row[2])
+                    db.session.add(book)
+                    db.session.commit()
+
+            return {"message": "Book added successfully "}
+    except Exception as e:
+        return {"message": "Exception occurred", "error": str(e)}

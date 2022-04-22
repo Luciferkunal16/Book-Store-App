@@ -1,4 +1,9 @@
 from app import db
+from sqlalchemy import create_engine, ForeignKey, Column, Integer, String
+from sqlalchemy.ext.declarative import declarative_base
+
+Base = declarative_base()
+from sqlalchemy.orm import relationship
 
 
 class UserModel(db.Model):
@@ -6,7 +11,6 @@ class UserModel(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80))
-
     password = db.Column(db.String(20))
     email = db.Column(db.String(30))
 
@@ -49,3 +53,49 @@ def create_book(name, price, author):
     db.session.add(book)
     db.session.commit()
     return book
+
+
+class Orders(db.Model):
+    __tablename__ = 'orders'
+    order_id = db.Column(Integer, primary_key=True)
+    total_price = db.Column(Integer)
+    quantity = db.Column(Integer)
+    user_id = db.Column(Integer, ForeignKey('users.id'))
+    status = db.Column(Integer)
+
+    user = relationship("UserModel")
+
+
+class OrderItem(db.Model):
+    __tablename__ = 'order_item'
+    order_item_id = db.Column(Integer, primary_key=True)
+    order_id = db.Column(Integer, ForeignKey('orders.order_id'))
+    user_id = db.Column(Integer, ForeignKey('users.id'))
+    book_id = db.Column(Integer, ForeignKey('books.id'))
+    status = db.Column(Integer)
+    quantity = db.Column(Integer)
+    book = relationship("BookModel")
+    orders = relationship("Orders")
+
+
+class Cart(db.Model):
+    __tablename__ = 'cart'
+    cart_id = db.Column(Integer, primary_key=True)
+    total_quantity = db.Column(Integer)
+    total_price = db.Column(Integer)
+    user_id = db.Column(Integer, ForeignKey('users.id'))
+    status = db.Column(Integer)
+    user = relationship("UserModel")
+
+
+class CartItem(db.Model):
+    __tablename__ = 'cart_item'
+    cart_item_id = db.Column(Integer, primary_key=True)
+    book_id = db.Column(Integer, ForeignKey('books.id'))
+    user_id = db.Column(Integer, ForeignKey('users.id'))
+    cart_id = db.Column(Integer, ForeignKey('cart.cart_id'))
+    quantity=db.Column(Integer)
+    book=relationship("BookModel")
+    user = relationship("UserModel")
+    carting=relationship("Cart")
+
