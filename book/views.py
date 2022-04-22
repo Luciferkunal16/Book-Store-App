@@ -106,10 +106,12 @@ def add_book_by_csv():
             read = csv.reader(text_file)
             for row in read:
                 if BookModel.query.filter_by(name=row[0]).first():
-                    return {"message": "one or many Book already Exists in Database Please Check"}
-                book = BookModel(name=row[0], author=row[1], price=row[2])
-                db.session.add(book)
-                db.session.commit()
+                    print(row[0])
+                    logger.exception("Book already exist in database,Book name-{}".format(row[0]))
+                else:
+                    book = BookModel(name=row[0], author=row[1], price=row[2])
+                    db.session.add(book)
+                    db.session.commit()
 
             return {"message": "Book added successfully "}
     except Exception as e:
